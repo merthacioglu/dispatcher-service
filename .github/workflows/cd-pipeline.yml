@@ -1,0 +1,43 @@
+name: CD Pipeline
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+      - name: Compile and test application
+        run: |
+          chmod +x gradlew
+          ./gradlew build
+  package:
+    name: Package
+    runs-on: ubuntu-24.04
+    needs: [build]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+      - name: Containerise and publish image
+        run: |
+          chmod +x gradlew
+          ./gradlew bootBuildImage --publishImage \
+            -PregistryUrl=${{ secrets.REGISTRY_URL }} \
+            -PregistryUsername=${{ secrets.REGISTRY_USERNAME }} \
+            -PregistryToken=${{ secrets.REGISTRY_TOKEN }}
